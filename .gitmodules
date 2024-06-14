@@ -5,4 +5,3 @@
 [submodule "luau"]
 	path = deps/luau
 	url = https://github.com/luau-lang/luau.git
-	branch = master
