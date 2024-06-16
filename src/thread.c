@@ -35,14 +35,8 @@ static lua_State* luv_thread_acquire_vm(void) {
   // Add in the lua standard libraries
   luaL_openlibs(L);
 
-  // Get package.loaded, so we can store uv in it.
-  lua_getglobal(L, "package");
-  lua_getfield(L, -1, "loaded");
-  lua_remove(L, -2); // Remove package
-
   // Store uv module definition at loaded.uv
   luaopen_luv(L);
-  lua_setfield(L, -2, "luv");
   lua_pop(L, 1);
 
   return L;
@@ -99,7 +93,7 @@ static int luv_thread_arg_set(lua_State* L, luv_thread_arg_t* args, int idx, int
       break;
     case LUA_TUSERDATA:
       arg->val.udata.data = lua_topointer(L, i);
-      arg->val.udata.size = lua_rawlen(L, i);
+      arg->val.udata.size = lua_objlen(L, i);
       arg->val.udata.metaname = luv_getmtname(L, i);
 
       if (arg->val.udata.size) {
@@ -134,7 +128,7 @@ static void luv_thread_arg_clear(lua_State* L, luv_thread_arg_t* args, int flags
     case LUA_TSTRING:
       if (arg->ref[side] != LUA_NOREF)
       {
-        luaL_unref(L, LUA_REGISTRYINDEX, arg->ref[side]);
+        lua_unref(L, arg->ref[side]);
         arg->ref[side] = LUA_NOREF;
       } else {
         if(async && set!=side)
@@ -156,7 +150,7 @@ static void luv_thread_arg_clear(lua_State* L, luv_thread_arg_t* args, int flags
           lua_setmetatable(L, -2);
           lua_pop(L, -1);
         }
-        luaL_unref(L, LUA_REGISTRYINDEX, arg->ref[side]);
+        lua_unref(L, arg->ref[side]);
         arg->ref[side] = LUA_NOREF;
       }
       break;
@@ -215,8 +209,9 @@ static int luv_thread_arg_error(lua_State *L) {
   int type = lua_tointeger(L, -2);
   int pos = lua_tointeger(L, -1);
   lua_pop(L, 2);
-  return luaL_error(L, "Error: thread arg not support type '%s' at %d",
+  luaL_error(L, "Error: thread arg not support type '%s' at %d",
     lua_typename(L, type), pos);
+  return 0;
 }
 
 static int thread_dump (lua_State *L, const void *b, size_t size, void *ud) {
@@ -231,21 +226,7 @@ static int luv_thread_dumped(lua_State* L, int idx) {
   if (lua_isstring(L, idx)) {
     lua_pushvalue(L, idx);
   } else {
-    int ret, top;
-    luaL_Buffer B;
-
-    // In Lua >= 5.4.3, luaL_buffinit pushes a value onto the stack, so it needs to be called
-    // here to ensure that the function is at the top of the stack during the lua_dump call
-    luaL_buffinit(L, &B);
-    luaL_checktype(L, idx, LUA_TFUNCTION);
-    lua_pushvalue(L, idx);
-    top = lua_gettop(L);
-    ret = lua_dump(L, thread_dump, &B, 1);
-    lua_remove(L, top);
-    if (ret==0) {
-      luaL_pushresult(&B);
-    } else
-      luaL_error(L, "Error: unable to dump given function");
+    luaL_error(L, "Error: unable to dump given function");
   }
   return 1;
 }
@@ -279,7 +260,12 @@ static void luv_thread_cb(void* varg) {
   lua_setglobal(L, "_THREAD");
 
   //push lua function, thread entry
-  if (luaL_loadbuffer(L, thd->code, thd->len, "=thread") == 0) {
+  size_t bytecodeLen = 0;
+  char* bytecode = luau_compile(thd->code, thd->len, NULL, &bytecodeLen);
+  int loadResult = luau_load(L, "=thread", bytecode, bytecodeLen, 0);
+  free(bytecode);
+
+  if (loadResult == 0) {
     //push parameter for real thread function
     int i = luv_thread_arg_push(L, &thd->args, LUVF_THREAD_SIDE_CHILD);
 
@@ -300,7 +286,7 @@ static void luv_thread_notify_close_cb(uv_handle_t *handle) {
   if (thread->handle != 0)
     uv_thread_join(&thread->handle);
 
-  luaL_unref(thread->L, LUA_REGISTRYINDEX, thread->ref);
+  lua_unref(thread->L, LUA_REGISTRYINDEX, thread->ref);
   thread->ref = LUA_NOREF;
   thread->L = NULL;
 }
@@ -332,7 +318,8 @@ static int luv_new_thread(lua_State* L) {
         options.stack_size = lua_tointeger(L, -1);
       }
       else {
-        return luaL_argerror(L, 1, "stack_size option must be a number if set");
+        luaL_argerror(L, 1, "stack_size option must be a number if set");
+return 0;
       }
     }
     lua_pop(L, 1);
@@ -340,11 +327,11 @@ static int luv_new_thread(lua_State* L) {
 #endif
 
   luv_thread_dumped(L, cbidx);
-  len = lua_rawlen(L, -1);
+  len = lua_objlen(L, -1);
   code = malloc(len);
   memcpy(code, lua_tostring(L, -1), len);
 
-  thread = (luv_thread_t*)lua_newuserdata(L, sizeof(*thread));
+  thread = (luv_thread_t*)lua_newuserdatadtor(L, sizeof(*thread), luv_thread_gc);
   memset(thread, 0, sizeof(*thread));
   luaL_getmetatable(L, "uv_thread");
   lua_setmetatable(L, -2);
@@ -391,7 +378,8 @@ static int luv_thread_getaffinity(lua_State* L) {
   }
   int mask_size = luaL_optinteger(L, 2, default_mask_size);
   if (mask_size < default_mask_size) {
-    return luaL_argerror(L, 2, lua_pushfstring(L, "cpumask size must be >= %d (from cpumask_size()), got %d", default_mask_size, mask_size));
+    luaL_argerror(L, 2, lua_pushfstring(L, "cpumask size must be >= %d (from cpumask_size()), got %d", default_mask_size, mask_size));
+return 0;
   }
   char* cpumask = malloc(mask_size);
   int ret = uv_thread_getaffinity(&tid->handle, cpumask, mask_size);
@@ -416,7 +404,7 @@ static int luv_thread_setaffinity(lua_State* L) {
   if (min_mask_size < 0) {
     return luv_error(L, min_mask_size);
   }
-  int mask_size = lua_rawlen(L, 2);
+  int mask_size = lua_objlen(L, 2);
   // If the provided table's length is not at least min_mask_size,
   // we'll use the min_mask_size and fill in any missing values with
   // false.
@@ -496,7 +484,7 @@ static int luv_thread_self(lua_State* L)
 {
   luv_thread_t* thread;
   uv_thread_t t = uv_thread_self();
-  thread = (luv_thread_t*)lua_newuserdata(L, sizeof(*thread));
+  thread = (luv_thread_t*)lua_newuserdatadtor(L, sizeof(*thread), luv_thread_gc);
   memset(thread, 0, sizeof(*thread));
   memcpy(&thread->handle, &t, sizeof(t));
   luaL_getmetatable(L, "uv_thread");
@@ -529,12 +517,10 @@ static const luaL_Reg luv_thread_methods[] = {
 
 static void luv_thread_init(lua_State* L) {
   luaL_newmetatable(L, "uv_thread");
-  lua_pushcfunction(L, luv_thread_tostring);
+  lua_pushcfunction(L, luv_thread_tostring, NULL);
   lua_setfield(L, -2, "__tostring");
-  lua_pushcfunction(L, luv_thread_equal);
+  lua_pushcfunction(L, luv_thread_equal, NULL);
   lua_setfield(L, -2, "__eq");
-  lua_pushcfunction(L, luv_thread_gc);
-  lua_setfield(L, -2, "__gc");
   lua_newtable(L);
   luaL_setfuncs(L, luv_thread_methods, 0);
   lua_setfield(L, -2, "__index");

@@ -107,7 +107,8 @@ static int luv_tcp_bind(lua_State* L) {
   int ret;
   if (uv_ip4_addr(host, port, (struct sockaddr_in*)&addr) &&
       uv_ip6_addr(host, port, (struct sockaddr_in6*)&addr)) {
-    return luaL_error(L, "Invalid IP address or port [%s:%d]", host, port);
+    luaL_error(L, "Invalid IP address or port [%s:%d]", host, port);
+return 0;
   }
   if (lua_type(L, 4) == LUA_TTABLE) {
     lua_getfield(L, 4, "ipv6only");
@@ -187,7 +188,8 @@ static int luv_tcp_connect(lua_State* L) {
   luv_handle_t* lhandle = handle->data;
   if (uv_ip4_addr(host, port, (struct sockaddr_in*)&addr) &&
       uv_ip6_addr(host, port, (struct sockaddr_in6*)&addr)) {
-    return luaL_error(L, "Invalid IP address or port [%s:%d]", host, port);
+    luaL_error(L, "Invalid IP address or port [%s:%d]", host, port);
+return 0;
   }
   ref = luv_check_continuation(L, 4);
 
@@ -238,7 +240,8 @@ static int luv_socketpair(lua_State* L) {
   else if (lua_isstring(L, 1)) {
     socktype = luv_sock_string_to_num(lua_tostring(L, 1));
     if (socktype == 0) {
-      return luaL_argerror(L, 1, lua_pushfstring(L, "invalid socket type: %s", lua_tostring(L, 1)));
+      luaL_argerror(L, 1, lua_pushfstring(L, "invalid socket type: %s", lua_tostring(L, 1)));
+return 0;
     }
   }
   else if (!lua_isnoneornil(L, 1)) {
@@ -251,7 +254,8 @@ static int luv_socketpair(lua_State* L) {
   else if (lua_isstring(L, 2)) {
     protocol = luv_proto_string_to_num(lua_tostring(L, 2));
     if (protocol < 0) {
-      return luaL_argerror(L, 2, lua_pushfstring(L, "invalid protocol: %s", lua_tostring(L, 2)));
+      luaL_argerror(L, 2, lua_pushfstring(L, "invalid protocol: %s", lua_tostring(L, 2)));
+return 0;
     }
   }
   else if (!lua_isnoneornil(L, 2)) {

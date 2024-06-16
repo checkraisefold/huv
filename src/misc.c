@@ -57,7 +57,7 @@ static void luv_prep_buf(lua_State *L, int idx, uv_buf_t *pbuf) {
 static uv_buf_t* luv_prep_bufs(lua_State* L, int index, size_t *count, int **refs) {
   uv_buf_t *bufs;
   size_t i;
-  *count = lua_rawlen(L, index);
+  *count = lua_objlen(L, index);
   bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t) * *count);
   int *refs_array = NULL;
   if (refs)
@@ -306,7 +306,7 @@ static int luv_interface_addresses(lua_State* L) {
 
     lua_pushstring(L, luv_af_num_to_string(interfaces[i].address.address4.sin_family));
     lua_setfield(L, -2, "family");
-    lua_rawseti(L, -2, lua_rawlen (L, -2) + 1);
+    lua_rawseti(L, -2, lua_objlen (L, -2) + 1);
     lua_pop(L, 1);
   }
   uv_free_interface_addresses(interfaces, count);
@@ -472,7 +472,7 @@ static int luv_print_active_handles(lua_State* L){
 #if LUV_UV_VERSION_GEQ(1, 12, 0)
 static int luv_os_getenv(lua_State* L) {
   const char* name = luaL_checkstring(L, 1);
-  size_t size = luaL_optinteger(L, 2, LUAL_BUFFERSIZE);
+  size_t size = luaL_optinteger(L, 2, LUA_BUFFERSIZE);
   char *buff = malloc(size);
   int ret = uv_os_getenv(name, buff, &size);
   if (ret == 0) {
@@ -716,7 +716,8 @@ static int luv_random(lua_State* L) {
     // we want to be able to take a table
   }
   else {
-    return luaL_argerror(L, 2, "expected nil, integer, or table");
+    luaL_argerror(L, 2, "expected nil, integer, or table");
+return 0;
   }
 
   int cb_ref = luv_check_continuation(L, 3);

@@ -103,7 +103,8 @@ int luv_tty_get_vterm_state(lua_State* L)
       ret = 1;
       break;
     default:
-      ret = luaL_error(L, "unexpected uv_tty_vtermstate: %d", state);
+      luaL_error(L, "unexpected uv_tty_vtermstate: %d", state);
+      ret = 0;
   }
   return ret;
 }

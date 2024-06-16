@@ -139,7 +139,8 @@ static int luv_udp_bind(lua_State* L) {
   int ret;
   if (uv_ip4_addr(host, port, (struct sockaddr_in*)&addr) &&
       uv_ip6_addr(host, port, (struct sockaddr_in6*)&addr)) {
-    return luaL_error(L, "Invalid IP address or port [%s:%d]", host, port);
+    luaL_error(L, "Invalid IP address or port [%s:%d]", host, port);
+return 0;
   }
   if (lua_type(L, 4) == LUA_TTABLE) {
     luaL_checktype(L, 4, LUA_TTABLE);

@@ -75,7 +75,8 @@ static int luv_pipe_optflags(lua_State *L, int i, unsigned int flags) {
     lua_pop(L, 1);
   }
   else {
-    return luaL_argerror(L, i, "expected nil, integer, or table");
+    luaL_argerror(L, i, "expected nil, integer, or table");
+return 0;
   }
   return flags;
 }

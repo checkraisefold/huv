@@ -50,7 +50,7 @@ static void luv_clean_options(lua_State* L, uv_process_options_t* options, int* 
   if (args_refs) {
     int i;
     for (i = 0; args_refs[i] != LUA_NOREF; i++) {
-      luaL_unref(L, LUA_REGISTRYINDEX, args_refs[i]);
+      lua_unref(L, args_refs[i]);
     }
     free(args_refs);
   }
@@ -58,7 +58,7 @@ static void luv_clean_options(lua_State* L, uv_process_options_t* options, int* 
 
 // iterates over the tbl to find the max integer
 // key of the table that is >= 1. If any key is
-// NOT an integer, simply call lua_rawlen().
+// NOT an integer, simply call lua_objlen().
 static int sparse_rawlen(lua_State* L, int tbl) {
   int len = 0;
   tbl = lua_absindex(L, tbl);
@@ -74,7 +74,7 @@ static int sparse_rawlen(lua_State* L, int tbl) {
       }
     }
     lua_pop(L, 2);
-    return lua_rawlen(L, tbl);
+    return lua_objlen(L, tbl);
   }
   return len;
 }
@@ -99,11 +99,12 @@ static int luv_spawn(lua_State* L) {
   lua_getfield(L, 2, "args");
   // +1 for inserted command at front
   if (lua_type(L, -1) == LUA_TTABLE) {
-    len = 1 + lua_rawlen(L, -1);
+    len = 1 + lua_objlen(L, -1);
   }
   else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
-    return luaL_argerror(L, 3, "args option must be table");
+    luaL_argerror(L, 3, "args option must be table");
+return 0;
   }
   else {
     len = 1;
@@ -124,7 +125,8 @@ static int luv_spawn(lua_State* L) {
 
   if (!options.args || (len > 1 && !args_refs)) {
     luv_clean_options(L, &options, args_refs);
-    return luaL_error(L, "Problem allocating args");
+    luaL_error(L, "Problem allocating args");
+return 0;
   }
   options.args[0] = (char*)options.file;
   for (i = 1; i < len; ++i) {
@@ -142,7 +144,8 @@ static int luv_spawn(lua_State* L) {
     options.stdio = (uv_stdio_container_t*)malloc(len * sizeof(*options.stdio));
     if (!options.stdio) {
       luv_clean_options(L, &options, args_refs);
-      return luaL_error(L, "Problem allocating stdio");
+      luaL_error(L, "Problem allocating stdio");
+return 0;
     }
     for (i = 0; i < len; ++i) {
       lua_rawgeti(L, -1, i + 1);
@@ -176,25 +179,28 @@ static int luv_spawn(lua_State* L) {
       }
       else {
         luv_clean_options(L, &options, args_refs);
-        return luaL_argerror(L, 2, "stdio table entries must be nil, uv_stream_t, or integer");
+        luaL_argerror(L, 2, "stdio table entries must be nil, uv_stream_t, or integer");
+return 0;
       }
       lua_pop(L, 1);
     }
   }
   else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
-    return luaL_argerror(L, 2, "stdio option must be table");
+    luaL_argerror(L, 2, "stdio option must be table");
+return 0;
   }
   lua_pop(L, 1);
 
   // Get the env
   lua_getfield(L, 2, "env");
   if (lua_type(L, -1) == LUA_TTABLE) {
-    len = lua_rawlen(L, -1);
+    len = lua_objlen(L, -1);
     options.env = (char**)malloc((len + 1) * sizeof(*options.env));
     if (!options.env) {
       luv_clean_options(L, &options, args_refs);
-      return luaL_error(L, "Problem allocating env");
+      luaL_error(L, "Problem allocating env");
+return 0;
     }
     for (i = 0; i < len; ++i) {
       lua_rawgeti(L, -1, i + 1);
@@ -205,7 +211,8 @@ static int luv_spawn(lua_State* L) {
   }
   else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
-    return luaL_argerror(L, 2, "env option must be table");
+    luaL_argerror(L, 2, "env option must be table");
+return 0;
   }
   lua_pop(L, 1);
 
@@ -216,7 +223,8 @@ static int luv_spawn(lua_State* L) {
   }
   else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
-    return luaL_argerror(L, 2, "cwd option must be string");
+    luaL_argerror(L, 2, "cwd option must be string");
+return 0;
   }
   lua_pop(L, 1);
 
@@ -228,7 +236,8 @@ static int luv_spawn(lua_State* L) {
   }
   else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
-    return luaL_argerror(L, 2, "uid option must be number");
+    luaL_argerror(L, 2, "uid option must be number");
+return 0;
   }
   lua_pop(L, 1);
 
@@ -240,7 +249,8 @@ static int luv_spawn(lua_State* L) {
   }
   else if (lua_type(L, -1) != LUA_TNIL) {
     luv_clean_options(L, &options, args_refs);
-    return luaL_argerror(L, 2, "gid option must be number");
+    luaL_argerror(L, 2, "gid option must be number");
+return 0;
   }
   lua_pop(L, 1);
 

@@ -124,7 +124,8 @@ static int luv_getaddrinfo(lua_State* L) {
       hints->ai_socktype = luv_sock_string_to_num(lua_tostring(L, -1));
     }
     else if (!lua_isnil(L, -1)) {
-      return luaL_argerror(L, 3, "socktype hint must be string if set");
+      luaL_argerror(L, 3, "socktype hint must be string if set");
+return 0;
     }
     lua_pop(L, 1);
 
@@ -136,12 +137,14 @@ static int luv_getaddrinfo(lua_State* L) {
     else if (lua_isstring(L, -1)) {
       int protocol = luv_proto_string_to_num(lua_tostring(L, -1));
       if (protocol < 0) {
-        return luaL_argerror(L, 3, lua_pushfstring(L, "invalid protocol: %s", lua_tostring(L, -1)));
+        luaL_argerror(L, 3, lua_pushfstring(L, "invalid protocol: %s", lua_tostring(L, -1)));
+return 0;
       }
       hints->ai_protocol = protocol;
     }
     else if (!lua_isnil(L, -1)) {
-      return luaL_argerror(L, 3, "protocol hint must be string if set");
+      luaL_argerror(L, 3, "protocol hint must be string if set");
+return 0;
     }
     lua_pop(L, 1);
 
@@ -189,10 +192,11 @@ static int luv_getaddrinfo(lua_State* L) {
 #if !LUV_UV_VERSION_GEQ(1, 3, 0)
   // in libuv < 1.3.0, the callback cannot be NULL
   if (ref == LUA_NOREF) {
-    return luaL_argerror(L, 4, "callback must be provided");
+    luaL_argerror(L, 4, "callback must be provided");
+return 0;
   }
 #endif
-  req = (uv_getaddrinfo_t*)lua_newuserdata(L, uv_req_size(UV_GETADDRINFO));
+  req = (uv_getaddrinfo_t*)lua_newuserdatadtor(L, uv_req_size(UV_GETADDRINFO), luv_fs_gc);
   req->data = luv_setup_req(L, ctx, ref);
 
   ret = uv_getaddrinfo(ctx->loop, req, ref == LUA_NOREF ? NULL : luv_getaddrinfo_cb, node, service, hints);
@@ -271,7 +275,8 @@ static int luv_getnameinfo(lua_State* L) {
       addr.ss_family = AF_INET6;
     }
     else {
-      return luaL_argerror(L, 1, "Invalid ip address or port");
+      luaL_argerror(L, 1, "Invalid ip address or port");
+return 0;
     }
   }
 
@@ -291,11 +296,12 @@ static int luv_getnameinfo(lua_State* L) {
 #if !LUV_UV_VERSION_GEQ(1, 3, 0)
   // in libuv < 1.3.0, the callback cannot be NULL
   if (ref == LUA_NOREF) {
-    return luaL_argerror(L, 2, "callback must be provided");
+    luaL_argerror(L, 2, "callback must be provided");
+return 0;
   }
 #endif
 
-  req = (uv_getnameinfo_t*)lua_newuserdata(L, uv_req_size(UV_GETNAMEINFO));
+  req = (uv_getnameinfo_t*)lua_newuserdatadtor(L, uv_req_size(UV_GETNAMEINFO), luv_fs_gc);
   req->data = luv_setup_req(L, ctx, ref);
 
   ret = uv_getnameinfo(ctx->loop, req, ref == LUA_NOREF ? NULL : luv_getnameinfo_cb, (struct sockaddr*)&addr, flags);

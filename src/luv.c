@@ -16,9 +16,6 @@
  */
 
 #include <lua.h>
-#if (LUA_VERSION_NUM < 503)
-#include "compat-5.3.h"
-#endif
 #include "luv.h"
 
 #include "async.c"
@@ -602,11 +599,10 @@ static const luaL_Reg luv_dir_methods[] = {
 
 static void luv_dir_init(lua_State* L) {
   luaL_newmetatable(L, "uv_dir");
-  lua_pushcfunction(L, luv_fs_dir_tostring);
+  lua_pushcfunction(L, luv_fs_dir_tostring, NULL);
   lua_setfield(L, -2, "__tostring");
-  lua_pushcfunction(L, luv_fs_dir_gc);
-  lua_setfield(L, -2, "__gc");
-  luaL_newlib(L, luv_dir_methods);
+  lua_createtable(L, 0, sizeof(luv_dir_methods)/sizeof((luv_dir_methods)[0]) - 1);
+  luaL_setfuncs(L, luv_dir_methods, 0);
   lua_setfield(L, -2, "__index");
   lua_pop(L, 1);
 }
@@ -617,11 +613,10 @@ static void luv_handle_init(lua_State* L) {
   lua_newtable(L);
 #define XX(uc, lc)                             \
     luaL_newmetatable (L, "uv_"#lc);           \
-    lua_pushcfunction(L, luv_handle_tostring); \
+    lua_pushcfunction(L, luv_handle_tostring, NULL); \
     lua_setfield(L, -2, "__tostring");         \
-    lua_pushcfunction(L, luv_handle_gc);       \
-    lua_setfield(L, -2, "__gc");               \
-    luaL_newlib(L, luv_##lc##_methods);        \
+    lua_createtable(L, 0, sizeof(luv_##lc##_methods)/sizeof((luv_##lc##_methods)[0]) - 1); \
+    luaL_setfuncs(L, luv_##lc##_methods, 0);   \
     luaL_setfuncs(L, luv_handle_methods, 0);   \
     lua_setfield(L, -2, "__index");            \
     lua_pushboolean(L, 1);                     \
@@ -668,20 +663,20 @@ static const luaL_Reg luv_req_methods[] = {
 
 static void luv_req_init(lua_State* L) {
   luaL_newmetatable(L, "uv_req");
-  lua_pushcfunction(L, luv_req_tostring);
+  lua_pushcfunction(L, luv_req_tostring, NULL);
   lua_setfield(L, -2, "__tostring");
-  luaL_newlib(L, luv_req_methods);
+  lua_createtable(L, 0, sizeof(luv_req_methods)/sizeof((luv_req_methods)[0]) - 1);
+  luaL_setfuncs(L, luv_req_methods, 0);
   lua_setfield(L, -2, "__index");
   lua_pop(L, 1);
 
   // Only used for luv_fs_scandir_t
   luaL_newmetatable(L, "uv_fs_scandir");
-  lua_pushcfunction(L, luv_req_tostring);
+  lua_pushcfunction(L, luv_req_tostring, NULL);
   lua_setfield(L, -2, "__tostring");
-  luaL_newlib(L, luv_req_methods);
+  lua_createtable(L, 0, sizeof(luv_req_methods)/sizeof((luv_req_methods)[0]) - 1);
+  luaL_setfuncs(L, luv_req_methods, 0);
   lua_setfield(L, -2, "__index");
-  lua_pushcfunction(L, luv_fs_gc);
-  lua_setfield(L, -2, "__gc");
   lua_pop(L, 1);
 }
 
@@ -695,7 +690,7 @@ LUALIB_API int luv_cfpcall(lua_State* L, int nargs, int nresult, int flags) {
   // Get the traceback function in case of error
   if ((flags & (LUVF_CALLBACK_NOTRACEBACK|LUVF_CALLBACK_NOERRMSG) ) == 0)
   {
-    lua_pushcfunction(L, luv_traceback);
+    lua_pushcfunction(L, luv_traceback, NULL);
     errfunc = lua_gettop(L);
     // And insert it before the function and args
     lua_insert(L, -2 - nargs);
@@ -743,7 +738,7 @@ LUALIB_API int luv_cfpcall(lua_State* L, int nargs, int nresult, int flags) {
 // Call lua c function in protected mode. When error occurs, it will print
 // error message to stderr, and memory allocation error will cause exit.
 LUALIB_API int luv_cfcpcall(lua_State* L, lua_CFunction func, void * ud, int flags) {
-  lua_pushcfunction(L, func);
+  lua_pushcfunction(L, func, NULL);
   lua_pushlightuserdata(L, ud);
   int ret = luv_cfpcall(L, 1, 0, flags);
   return ret;
@@ -830,26 +825,17 @@ static int loop_gc(lua_State *L) {
 LUALIB_API int luaopen_luv (lua_State* L) {
   luv_ctx_t* ctx = luv_context(L);
 
-  luaL_newlib(L, luv_functions);
+  luaL_register(L, "luv", luv_functions);
 
   // loop is NULL, luv need to create an inner loop
   if (ctx->loop==NULL) {
     int ret;
     uv_loop_t* loop;
 
-    // Setup the uv_loop meta table for a proper __gc
-    luaL_newmetatable(L, "uv_loop.meta");
-    lua_pushstring(L, "__gc");
-    lua_pushcfunction(L, loop_gc);
-    lua_settable(L, -3);
-    lua_pop(L, 1);
-
     lua_pushstring(L, "_loop");
     loop = (uv_loop_t*)lua_newuserdata(L, sizeof(*loop));
-    // setup the userdata's metatable for __gc
-    luaL_getmetatable(L, "uv_loop.meta");
-    lua_setmetatable(L, -2);
-    // create a ref to loop, avoid __gc early
+
+    // create a ref to loop, avoid destructor early (TODO: is this needed in luau)
     // this puts the loop userdata into the _loop key
     // in the returned luv table
     lua_rawset(L, -3);
@@ -860,7 +846,8 @@ LUALIB_API int luaopen_luv (lua_State* L) {
 
     ret = uv_loop_init(loop);
     if (ret < 0) {
-      return luaL_error(L, "%s: %s\n", uv_err_name(ret), uv_strerror(ret));
+      luaL_error(L, "%s: %s\n", uv_err_name(ret), uv_strerror(ret));
+return 0;
     }
 
     /* do cleanup in main thread */

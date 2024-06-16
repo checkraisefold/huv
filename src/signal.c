@@ -52,7 +52,8 @@ static int luv_signal_start(lua_State* L) {
     luaL_argcheck(L, signum, 2, "Invalid Signal name");
   }
   else {
-    return luaL_argerror(L, 2, "Missing Signal name");
+    luaL_argerror(L, 2, "Missing Signal name");
+return 0;
   }
 
   if (!lua_isnoneornil(L, 3)) {
@@ -74,7 +75,8 @@ static int luv_signal_start_oneshot(lua_State* L) {
     luaL_argcheck(L, signum, 2, "Invalid Signal name");
   }
   else {
-    return luaL_argerror(L, 2, "Missing Signal name");
+    luaL_argerror(L, 2, "Missing Signal name");
+return 0;
   }
 
   if (!lua_isnoneornil(L, 3)) {

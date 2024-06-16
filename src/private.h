@@ -2,9 +2,6 @@
 #define LUV_PRIVATE_H
 
 #include <lua.h>
-#if (LUA_VERSION_NUM < 503)
-#include "compat-5.3.h"
-#endif
 
 #include "lhandle.h"
 #include "lreq.h"
@@ -16,6 +13,28 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 #endif
+
+/* Some Lua shims. */
+int luaL_ref(lua_State* L, int t)
+{
+  assert(t == LUA_REGISTRYINDEX);
+  int r = lua_ref(L, -1);
+  lua_pop(L, 1);
+  return r;
+}
+
+void luaL_setfuncs(lua_State* L, const luaL_Reg* reg, int nup)
+{
+  assert(nup == 0);
+  for (; reg->name != NULL; reg++) {
+    if (reg->func == NULL)
+      lua_pushboolean(L, 0);
+    else {
+      lua_pushcclosure(L, reg->func, NULL, 0);
+    }
+    lua_setfield(L, -2, reg->name);
+  }
+}
 
 /* From stream.c */
 static uv_stream_t* luv_check_stream(lua_State* L, int index);
@@ -43,6 +62,11 @@ static void luv_find_handle(lua_State* L, luv_handle_t* data);
 
 /* Unref the handle from the lua world, allowing it to GC */
 static void luv_unref_handle(lua_State* L, luv_handle_t* data);
+
+/* Destructors of objects, __gc meta equiv */
+static int luv_handle_gc(lua_State* L);
+static int luv_fs_dir_gc(lua_State* L);
+static int luv_fs_gc(lua_State* L);
 
 /* From lreq.c */
 /* Used in the top of a setup function to check the arg

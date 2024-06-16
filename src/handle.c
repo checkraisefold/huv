@@ -19,7 +19,7 @@
 static void* luv_newuserdata(lua_State* L, size_t sz) {
   void* handle = malloc(sz);
   if (handle) {
-    *(void**)lua_newuserdata(L, sizeof(void*)) = handle;
+    *(void**)lua_newuserdatadtor(L, sizeof(void*), luv_handle_gc) = handle;
   }
   return handle;
 }
@@ -211,7 +211,7 @@ static int luv_fileno(lua_State* L) {
   uv_os_fd_t fd;
   int ret = uv_fileno(handle, &fd);
   if (ret < 0) return luv_error(L, ret);
-  lua_pushinteger(L, (LUA_INTEGER)(ptrdiff_t)fd);
+  lua_pushinteger(L, (lua_Integer)(ptrdiff_t)fd);
   return 1;
 }
 

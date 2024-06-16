@@ -89,7 +89,8 @@ static int luv_arg_type_error(lua_State* L, int index, const char* fmt) {
   else
     typearg = luaL_typename(L, index);  /* standard name */
   msg = lua_pushfstring(L, fmt, typearg);
-  return luaL_argerror(L, index, msg);
+  luaL_argerror(L, index, msg);
+return 0;
 }
 
 #if LUV_UV_VERSION_GEQ(1, 10, 0)

@@ -60,7 +60,7 @@ static luv_work_ctx_t* luv_check_work_ctx(lua_State* L, int index) {
 static int luv_work_ctx_gc(lua_State *L) {
   luv_work_ctx_t* ctx = luv_check_work_ctx(L, 1);
   free(ctx->code);
-  luaL_unref(L, LUA_REGISTRYINDEX, ctx->after_work_cb);
+  lua_unref(L, ctx->after_work_cb);
 
   return 0;
 }
@@ -86,8 +86,13 @@ static int luv_work_cb(lua_State* L) {
   if (lua_isnil(L, -1)) {
     lua_pop(L, 1);
 
+    size_t bytecodeLen = 0;
     lua_pushlstring(L, ctx->code, ctx->len);
-    if (luaL_loadbuffer(L, ctx->code, ctx->len, "=pool") != 0)
+    char* bytecode = luau_compile(ctx->code, ctx->len, NULL, &bytecodeLen);
+    int loadResult = luau_load(L, "=pool", bytecode, bytecodeLen, 0);
+    free(bytecode);
+
+    if (loadResult != 0)
     {
       fprintf(stderr, "Uncaught Error in work callback: %s\n", lua_tostring(L, -1));
       lua_pop(L, 2);
@@ -119,11 +124,14 @@ static int luv_work_cb(lua_State* L) {
   } else {
     lua_pop(L, 1);
     luv_thread_arg_clear(L, &work->args, LUVF_THREAD_SIDE_CHILD);
-    return luaL_error(L, "Uncaught Error: %s can't be work entry\n",
+    luaL_error(L, "Uncaught Error: %s can't be work entry\n",
             lua_typename(L, lua_type(L,-1)));
+    return 0;
   }
-  if (top!=lua_gettop(L))
-    return luaL_error(L, "stack not balance in luv_work_cb, need %d but %d", top, lua_gettop(L));
+  if (top!=lua_gettop(L)) {
+    luaL_error(L, "stack not balance in luv_work_cb, need %d but %d", top, lua_gettop(L));
+    return 0;
+  }
   return LUA_OK;
 }
 
@@ -173,7 +181,7 @@ static void luv_after_work_cb(uv_work_t* req, int status) {
   lctx->cb_pcall(L, i, 0, 0);
 
   //ref down to ctx, up in luv_queue_work()
-  luaL_unref(L, LUA_REGISTRYINDEX, work->ref);
+  lua_unref(L, work->ref);
   work->ref = LUA_NOREF;
 
   luv_thread_arg_clear(L, &work->args, LUVF_THREAD_SIDE_MAIN);
@@ -187,14 +195,14 @@ static int luv_new_work(lua_State* L) {
   luv_work_ctx_t* ctx;
 
   luv_thread_dumped(L, 1);
-  len = lua_rawlen(L, -1);
+  len = lua_objlen(L, -1);
   code = malloc(len);
   memcpy(code, lua_tostring(L, -1), len);
   lua_pop(L, 1);
 
   luaL_checktype(L, 2, LUA_TFUNCTION);
 
-  ctx = (luv_work_ctx_t*)lua_newuserdata(L, sizeof(*ctx));
+  ctx = (luv_work_ctx_t*)lua_newuserdatadtor(L, sizeof(*ctx), luv_work_ctx_gc);
   memset(ctx, 0, sizeof(*ctx));
 
   ctx->len = len;
@@ -306,11 +314,10 @@ static void luv_work_cleanup(void)
 
 static void luv_work_init(lua_State* L) {
   luaL_newmetatable(L, "luv_work_ctx");
-  lua_pushcfunction(L, luv_work_ctx_tostring);
+  lua_pushcfunction(L, luv_work_ctx_tostring, NULL);
   lua_setfield(L, -2, "__tostring");
-  lua_pushcfunction(L, luv_work_ctx_gc);
-  lua_setfield(L, -2, "__gc");
-  luaL_newlib(L, luv_work_ctx_methods);
+  lua_createtable(L, 0, sizeof(luv_work_ctx_methods)/sizeof((luv_work_ctx_methods)[0]) - 1);
+  luaL_setfuncs(L, luv_work_ctx_methods, 0);
   lua_setfield(L, -2, "__index");
   lua_pop(L, 1);
 

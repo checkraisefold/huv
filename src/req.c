@@ -17,7 +17,7 @@
 #include "private.h"
 
 static uv_req_t* luv_check_req(lua_State* L, int index) {
-  if (luaL_testudata(L, index, "uv_fs_scandir") != NULL) {
+  if (luaL_checkudata(L, index, "uv_fs_scandir") != NULL) {
     luv_fs_scandir_t* scandir_req = (luv_fs_scandir_t*)lua_touserdata(L, index);
     return (uv_req_t*)(scandir_req->req);
   }
