@@ -15,8 +15,8 @@
  *
  */
 
-#include <lua.h>
 #include "luv.h"
+#include <lua.h>
 
 #include "async.c"
 #include "check.c"

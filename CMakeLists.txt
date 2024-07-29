@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
 
-project (luv C CXX ASM)
+project (huv C CXX ASM)
 
-set(LUV_VERSION_MAJOR 1)
-set(LUV_VERSION_MINOR 48)
-set(LUV_VERSION_PATCH 0)
-set(LUV_VERSION ${LUV_VERSION_MAJOR}.${LUV_VERSION_MINOR}.${LUV_VERSION_PATCH})
+set(HUV_VERSION_MAJOR 1)
+set(HUV_VERSION_MINOR 48)
+set(HUV_VERSION_PATCH 0)
+set(HUV_VERSION ${HUV_VERSION_MAJOR}.${HUV_VERSION_MINOR}.${HUV_VERSION_PATCH})
 
 if(NOT ${CMAKE_VERSION} VERSION_LESS "3.5.0")
     # generate compilation database used by C code intelligence tools
@@ -95,24 +95,24 @@ else (LUA_BUILD_TYPE STREQUAL System)
 endif (LUA_BUILD_TYPE STREQUAL System)
 
 if (BUILD_MODULE)
-  add_library(luv MODULE src/luv.c)
-  set_target_properties(luv PROPERTIES PREFIX "")
-  list(APPEND ACTIVE_TARGETS "luv")
+  add_library(huv MODULE src/luv.c)
+  set_target_properties(huv PROPERTIES PREFIX "")
+  list(APPEND ACTIVE_TARGETS "huv")
 endif (BUILD_MODULE)
 if (BUILD_STATIC_LIBS)
-  add_library(libluv_a STATIC src/luv.c)
-  set_target_properties(libluv_a PROPERTIES OUTPUT_NAME luv)
-  list(APPEND ACTIVE_TARGETS "libluv_a")
+  add_library(libhuv_a STATIC src/luv.c)
+  set_target_properties(libhuv_a PROPERTIES OUTPUT_NAME huv)
+  list(APPEND ACTIVE_TARGETS "libhuv_a")
 endif (BUILD_STATIC_LIBS)
 if (BUILD_SHARED_LIBS)
-  add_library(libluv SHARED src/luv.c)
-  set_target_properties(libluv
-    PROPERTIES VERSION ${LUV_VERSION} SOVERSION ${LUV_VERSION_MAJOR} OUTPUT_NAME luv)
+  add_library(libhuv SHARED src/luv.c)
+  set_target_properties(libhuv
+    PROPERTIES VERSION ${HUV_VERSION} SOVERSION ${HUV_VERSION_MAJOR} OUTPUT_NAME huv)
   if(APPLE)
-    set_target_properties(libluv
+    set_target_properties(libhuv
       PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
   endif(APPLE)
-  list(APPEND ACTIVE_TARGETS "libluv")
+  list(APPEND ACTIVE_TARGETS "libhuv")
 endif (BUILD_SHARED_LIBS)
 
 if(APPLE)
@@ -173,23 +173,23 @@ endif (BUILD_SHARED_LIBS)
 
 # header install paths are LuaRocks-agnostic, so just use CMAKE_INSTALL_PREFIX regardless
 if (BUILD_STATIC_LIBS)
-  set(STATICLIBS_INSTALL_INC_DIR "${CMAKE_INSTALL_PREFIX}/include/luv"
+  set(STATICLIBS_INSTALL_INC_DIR "${CMAKE_INSTALL_PREFIX}/include/huv"
     CACHE PATH "Installation directory for headers")
 endif (BUILD_STATIC_LIBS)
 if (BUILD_SHARED_LIBS)
-  set(SHAREDLIBS_INSTALL_INC_DIR "${CMAKE_INSTALL_PREFIX}/include/luv"
+  set(SHAREDLIBS_INSTALL_INC_DIR "${CMAKE_INSTALL_PREFIX}/include/huv"
     CACHE PATH "Installation directory for headers")
 endif (BUILD_SHARED_LIBS)
 
 if (CMAKE_INSTALL_PREFIX)
   if (BUILD_MODULE)
-    install(TARGETS luv
+    install(TARGETS huv
       ARCHIVE DESTINATION "${MODULE_INSTALL_LIB_DIR}"
       LIBRARY DESTINATION "${MODULE_INSTALL_LIB_DIR}"
     )
   endif (BUILD_MODULE)
   if (BUILD_STATIC_LIBS)
-    install(TARGETS libluv_a
+    install(TARGETS libhuv_a
       ARCHIVE DESTINATION "${STATICLIBS_INSTALL_LIB_DIR}"
       LIBRARY DESTINATION "${STATICLIBS_INSTALL_LIB_DIR}"
     )
@@ -199,7 +199,7 @@ if (CMAKE_INSTALL_PREFIX)
     )
   endif (BUILD_STATIC_LIBS)
   if (BUILD_SHARED_LIBS)
-    install(TARGETS libluv
+    install(TARGETS libhuv
       RUNTIME DESTINATION "${SHAREDLIBS_INSTALL_BIN_DIR}"
       ARCHIVE DESTINATION "${SHAREDLIBS_INSTALL_LIB_DIR}"
       LIBRARY DESTINATION "${SHAREDLIBS_INSTALL_LIB_DIR}"
@@ -208,8 +208,8 @@ if (CMAKE_INSTALL_PREFIX)
       set(prefix ${CMAKE_INSTALL_PREFIX})
       set(includedir ${SHAREDLIBS_INSTALL_INC_DIR})
       set(libdir ${SHAREDLIBS_INSTALL_LIB_DIR})
-      configure_file(libluv.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libluv.pc @ONLY)
-      install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libluv.pc
+      configure_file(libhuv.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libhuv.pc @ONLY)
+      install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libhuv.pc
         DESTINATION ${SHAREDLIBS_INSTALL_LIB_DIR}/pkgconfig)
     endif()
     install(

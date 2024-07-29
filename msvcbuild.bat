@@ -18,7 +18,7 @@ if %VS% LEQ 15 (
 	if "%platform%" EQU "x64" (set ARCH= -A x64)
 )
 
-cmake -H. -Bbuild -G"Visual Studio %VS%"%ARCH%
+cmake -Bbuild -G"Visual Studio %VS%"%ARCH%
 cmake --build build --config Release
 copy build\Release\luv.dll .
 copy build\Release\luajit.exe .
