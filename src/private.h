@@ -64,9 +64,9 @@ static void luv_find_handle(lua_State* L, luv_handle_t* data);
 static void luv_unref_handle(lua_State* L, luv_handle_t* data);
 
 /* Destructors of objects, __gc meta equiv */
-static int luv_handle_gc(lua_State* L);
-static int luv_fs_dir_gc(lua_State* L);
-static int luv_fs_gc(lua_State* L);
+static void luv_handle_gc(lua_State* L);
+static void luv_fs_dir_gc(lua_State* L);
+static void luv_fs_gc(lua_State* L);
 
 /* From lreq.c */
 /* Used in the top of a setup function to check the arg

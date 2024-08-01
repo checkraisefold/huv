@@ -57,12 +57,8 @@ static luv_work_ctx_t* luv_check_work_ctx(lua_State* L, int index) {
   return ctx;
 }
 
-static int luv_work_ctx_gc(lua_State *L) {
-  luv_work_ctx_t* ctx = luv_check_work_ctx(L, 1);
+static void luv_work_ctx_gc(luv_work_ctx_t* ctx) {
   free(ctx->code);
-  lua_unref(L, ctx->after_work_cb);
-
-  return 0;
 }
 
 static int luv_work_ctx_tostring(lua_State* L) {

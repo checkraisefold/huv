@@ -38,12 +38,11 @@ static uv_fs_t* luv_check_fs(lua_State* L, int index) {
   return req;
 }
 
-static int luv_fs_gc(lua_State* L) {
-  uv_fs_t* req = luv_check_fs(L, 1);
-  luv_cleanup_req(L, (luv_req_t*)req->data);
+static void luv_fs_gc(uv_fs_t* req) {
+  free(((luv_req_t*)req->data)->data);
+  free(req->data);
   req->data = NULL;
   uv_fs_req_cleanup(req);
-  return 0;
 }
 
 static void luv_push_timespec_table(lua_State* L, const uv_timespec_t* t) {
@@ -1018,21 +1017,16 @@ static int luv_fs_dir_tostring(lua_State* L) {
   return 1;
 }
 
-static int luv_fs_dir_gc(lua_State* L) {
-  luv_dir_t* dir = luv_check_dir(L, 1);
+static void luv_fs_dir_gc(luv_dir_t* dir) {
   if (dir->dirents_ref != LUA_NOREF) {
     uv_fs_t req;
-    luv_ctx_t* ctx = luv_context(L);
+    //luv_ctx_t* ctx = luv_context(L);
 
-    lua_unref(L, dir->dirents_ref);
     dir->dirents_ref = LUA_NOREF;
 
-    uv_fs_closedir(ctx->loop, &req, dir->handle, NULL);
+    //uv_fs_closedir(ctx->loop, &req, dir->handle, NULL);
     uv_fs_req_cleanup(&req);
   }
-  lua_pop(L, 1);
-
-  return 0;
 }
 #endif
 

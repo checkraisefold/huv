@@ -236,11 +236,9 @@ static luv_thread_t* luv_check_thread(lua_State* L, int index) {
   return thread;
 }
 
-static int luv_thread_gc(lua_State* L) {
-  luv_thread_t* tid = luv_check_thread(L, 1);
+static void luv_thread_gc(luv_thread_t* tid) {
   free(tid->code);
-  luv_thread_arg_clear(L, &tid->args, LUVF_THREAD_SIDE_MAIN);
-  return 0;
+  //luv_thread_arg_clear(L, &tid->args, LUVF_THREAD_SIDE_MAIN);
 }
 
 static int luv_thread_tostring(lua_State* L)
