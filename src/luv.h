@@ -19,6 +19,7 @@
 #include "uv.h"
 #include <lua.h>
 #include <lualib.h>
+#include <luacode.h>
 
 #include <assert.h>
 #include <stdlib.h>
