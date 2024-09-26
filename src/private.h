@@ -14,28 +14,6 @@
 #pragma clang diagnostic ignored "-Wunused-function"
 #endif
 
-/* Some Lua shims. */
-int luaL_ref(lua_State* L, int t)
-{
-  assert(t == LUA_REGISTRYINDEX);
-  int r = lua_ref(L, -1);
-  lua_pop(L, 1);
-  return r;
-}
-
-void luaL_setfuncs(lua_State* L, const luaL_Reg* reg, int nup)
-{
-  assert(nup == 0);
-  for (; reg->name != NULL; reg++) {
-    if (reg->func == NULL)
-      lua_pushboolean(L, 0);
-    else {
-      lua_pushcclosure(L, reg->func, NULL, 0);
-    }
-    lua_setfield(L, -2, reg->name);
-  }
-}
-
 typedef struct {
   uv_dir_t* handle;
   int dirents_ref; /* handle has been closed if this is LUA_NOREF */
