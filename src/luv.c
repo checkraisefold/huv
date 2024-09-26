@@ -801,6 +801,28 @@ LUALIB_API void luv_set_cthread(lua_State* L, luv_CFcpcall cpcall) {
   ctx->thrd_cpcall = cpcall;
 }
 
+/* Some Lua shims. */
+LUALIB_API int luaL_ref(lua_State* L, int t)
+{
+  assert(t == LUA_REGISTRYINDEX);
+  int r = lua_ref(L, -1);
+  lua_pop(L, 1);
+  return r;
+}
+
+LUALIB_API void luaL_setfuncs(lua_State* L, const luaL_Reg* reg, int nup)
+{
+  assert(nup == 0);
+  for (; reg->name != NULL; reg++) {
+    if (reg->func == NULL)
+      lua_pushboolean(L, 0);
+    else {
+      lua_pushcclosure(L, reg->func, NULL, 0);
+    }
+    lua_setfield(L, -2, reg->name);
+  }
+}
+
 static void walk_cb(uv_handle_t *handle, void *arg)
 {
   (void)arg;

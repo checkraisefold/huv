@@ -152,25 +152,7 @@ typedef void (*luv_release_vm)(lua_State* L);
 LUALIB_API void luv_set_thread_cb(luv_acquire_vm acquire, luv_release_vm release);
 
 /* Some Lua shims. */
-LUALIB_API int luaL_ref(lua_State* L, int t)
-{
-  assert(t == LUA_REGISTRYINDEX);
-  int r = lua_ref(L, -1);
-  lua_pop(L, 1);
-  return r;
-}
-
-LUALIB_API void luaL_setfuncs(lua_State* L, const luaL_Reg* reg, int nup)
-{
-  assert(nup == 0);
-  for (; reg->name != NULL; reg++) {
-    if (reg->func == NULL)
-      lua_pushboolean(L, 0);
-    else {
-      lua_pushcclosure(L, reg->func, NULL, 0);
-    }
-    lua_setfield(L, -2, reg->name);
-  }
-}
+LUALIB_API int luaL_ref(lua_State* L, int t);
+LUALIB_API void luaL_setfuncs(lua_State* L, const luaL_Reg* reg, int nup);
 
 #endif
