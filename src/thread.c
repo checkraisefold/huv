@@ -236,7 +236,8 @@ static luv_thread_t* luv_check_thread(lua_State* L, int index) {
   return thread;
 }
 
-static void luv_thread_gc(luv_thread_t* tid) {
+static void luv_thread_gc(void* tid_) {
+  luv_thread_t* tid = (luv_thread_t*)tid_;
   free(tid->code);
   //luv_thread_arg_clear(L, &tid->args, LUVF_THREAD_SIDE_MAIN);
 }
@@ -284,7 +285,7 @@ static void luv_thread_notify_close_cb(uv_handle_t *handle) {
   if (thread->handle != 0)
     uv_thread_join(&thread->handle);
 
-  lua_unref(thread->L, LUA_REGISTRYINDEX, thread->ref);
+  lua_unref(thread->L, thread->ref);
   thread->ref = LUA_NOREF;
   thread->L = NULL;
 }

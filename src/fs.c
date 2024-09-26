@@ -17,13 +17,6 @@
 
 #include "private.h"
 
-#if LUV_UV_VERSION_GEQ(1, 28, 0)
-typedef struct {
-  uv_dir_t* handle;
-  int dirents_ref; /* handle has been closed if this is LUA_NOREF */
-} luv_dir_t;
-#endif
-
 typedef struct {
   uv_fs_t* req;
 } luv_fs_scandir_t;
@@ -38,7 +31,8 @@ static uv_fs_t* luv_check_fs(lua_State* L, int index) {
   return req;
 }
 
-static void luv_fs_gc(uv_fs_t* req) {
+static void luv_fs_gc(void* req_) {
+  uv_fs_t* req = (uv_fs_t*)req_;
   free(((luv_req_t*)req->data)->data);
   free(req->data);
   req->data = NULL;
@@ -1017,7 +1011,8 @@ static int luv_fs_dir_tostring(lua_State* L) {
   return 1;
 }
 
-static void luv_fs_dir_gc(luv_dir_t* dir) {
+static void luv_fs_dir_gc(void* dir_) {
+  luv_dir_t* dir = (luv_dir_t*)dir_;
   if (dir->dirents_ref != LUA_NOREF) {
     uv_fs_t req;
     //luv_ctx_t* ctx = luv_context(L);

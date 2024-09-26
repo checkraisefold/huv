@@ -45,6 +45,7 @@
 #include "tty.c"
 #include "udp.c"
 #include "util.c"
+#include "uv.h"
 #include "work.c"
 
 static const luaL_Reg luv_functions[] = {
@@ -808,24 +809,21 @@ static void walk_cb(uv_handle_t *handle, void *arg)
   }
 }
 
-static int loop_gc(lua_State *L) {
-  luv_ctx_t *ctx = luv_context(L);
-  uv_loop_t* loop = ctx->loop;
-  if (loop==NULL)
-    return 0;
+static void loop_gc(void *loop_) {
+  uv_loop_t* loop = (uv_loop_t*)loop_;
+
   // Call uv_close on every active handle
   uv_walk(loop, walk_cb, NULL);
   // Run the event loop until all handles are successfully closed
   while (uv_loop_close(loop)) {
     uv_run(loop, UV_RUN_DEFAULT);
   }
-  return 0;
 }
 
 LUALIB_API int luaopen_luv (lua_State* L) {
   luv_ctx_t* ctx = luv_context(L);
 
-  luaL_register(L, "luv", luv_functions);
+  luaL_register(L, "huv", luv_functions);
 
   // loop is NULL, luv need to create an inner loop
   if (ctx->loop==NULL) {
@@ -833,7 +831,7 @@ LUALIB_API int luaopen_luv (lua_State* L) {
     uv_loop_t* loop;
 
     lua_pushstring(L, "_loop");
-    loop = (uv_loop_t*)lua_newuserdata(L, sizeof(*loop));
+    loop = (uv_loop_t*)lua_newuserdatadtor(L, sizeof(*loop), loop_gc);
 
     // create a ref to loop, avoid destructor early (TODO: is this needed in luau)
     // this puts the loop userdata into the _loop key

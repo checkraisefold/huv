@@ -130,7 +130,8 @@ static void luv_gc_cb(uv_handle_t* handle) {
   luv_handle_free(handle);
 }
 
-static void luv_handle_gc(uv_handle_t* handle) {
+static void luv_handle_gc(void* handle_) {
+  uv_handle_t* handle = (uv_handle_t*)handle_;
   luv_handle_t* data = (luv_handle_t*)handle->data;
 
   // Only cleanup if the handle hasn't been cleaned up yet.

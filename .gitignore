@@ -9,3 +9,4 @@ luv-*.src.rock
 luv-*/
 build.luarocks/
 .vs
+.cache

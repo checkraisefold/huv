@@ -36,6 +36,11 @@ void luaL_setfuncs(lua_State* L, const luaL_Reg* reg, int nup)
   }
 }
 
+typedef struct {
+  uv_dir_t* handle;
+  int dirents_ref; /* handle has been closed if this is LUA_NOREF */
+} luv_dir_t;
+
 /* From stream.c */
 static uv_stream_t* luv_check_stream(lua_State* L, int index);
 static void luv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
@@ -64,9 +69,9 @@ static void luv_find_handle(lua_State* L, luv_handle_t* data);
 static void luv_unref_handle(lua_State* L, luv_handle_t* data);
 
 /* Destructors of objects, __gc meta equiv */
-static void luv_handle_gc(lua_State* L);
-static void luv_fs_dir_gc(lua_State* L);
-static void luv_fs_gc(lua_State* L);
+static void luv_handle_gc(void* handle_);
+static void luv_fs_dir_gc(void* dir_);
+static void luv_fs_gc(void* req);
 
 /* From lreq.c */
 /* Used in the top of a setup function to check the arg

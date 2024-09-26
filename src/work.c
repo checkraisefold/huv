@@ -57,7 +57,8 @@ static luv_work_ctx_t* luv_check_work_ctx(lua_State* L, int index) {
   return ctx;
 }
 
-static void luv_work_ctx_gc(luv_work_ctx_t* ctx) {
+static void luv_work_ctx_gc(void* ctx_) {
+  luv_work_ctx_t* ctx = (luv_work_ctx_t*)ctx_;
   free(ctx->code);
 }
 
